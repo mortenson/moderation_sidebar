@@ -1,7 +1,7 @@
 <div class="moderation-sidebar-info">
   <h2>{{ title }}</h2>
-  <p>{{ 'Currently in the ' | t }} {{ state }} {{ ' state.' }}</p>
-  {% if revision_author %}
-    <p>{{ 'Last updated by' | t }}: {{  revision_author }} {{ 'on' | t }} {{ revision_time }}</p>
+  <p>{{ 'Current state is' | t }} {{ state }}</p>
+  {% if revision_author_link %}
+    <p>{{ 'Authored by' | t }} {{ revision_author_link }} {{ 'on ' | t }} <br />{{ revision_time | date('m/d/Y - h:i A') }}</p>
   {% endif %}
 </div>

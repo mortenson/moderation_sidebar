@@ -80,7 +80,7 @@ class QuickDraftForm extends FormBase {
 
     $form['create_draft'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Create New Draft'),
+      '#value' => $this->t('Create new draft'),
       '#attributes' => [
         'class' => ['moderation-sidebar-link'],
       ],

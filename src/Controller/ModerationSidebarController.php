@@ -11,7 +11,6 @@ use Drupal\Core\Entity\RevisionLogInterface;
 use Drupal\Core\Url;
 use Drupal\moderation_sidebar\Form\QuickDraftForm;
 use Drupal\moderation_sidebar\Form\QuickModerationForm;
-use Drupal\user\EntityOwnerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -78,13 +77,17 @@ class ModerationSidebarController extends ControllerBase {
     ];
 
     if ($entity instanceof EntityChangedInterface) {
-      $build['info']['updated_date'] = $entity->getChangedTime();
+      $build['info']['#updated_date'] = $entity->getChangedTime();
     }
 
     if ($entity instanceof RevisionLogInterface) {
       $user = $entity->getRevisionUser();
-      $build['info']['revision_author'] = $user->label();
-      $build['info']['revision_time'] = $entity->getRevisionCreationTime();
+      $user_link = $user->toLink()->toRenderable();
+      $user_link['#attributes']['target'] = '_blank';
+      $build['info']['#revision_author'] = $user->label();
+      $build['info']['#revision_author_link'] = $user_link;
+      $build['info']['#revision_time'] = $entity->getRevisionCreationTime();
+      $build['info']['#revision_id'] = $entity->getRevisionId();
     }
 
     $build['actions'] = [
@@ -95,17 +98,16 @@ class ModerationSidebarController extends ControllerBase {
     ];
 
     $entity_type_id = $entity->getEntityTypeId();
-    $params = [$entity_type_id => $entity->id()];
     $is_latest = $this->moderationInformation->isLatestRevision($entity);
 
     // If this revision is not the latest, provide a link to the latest entity.
     if (!$is_latest) {
-      $latest_revision = $this->moderationInformation->getLatestRevision($entity_type_id, $entity->id());
-      $state = $this->getState($latest_revision);
       $build['actions']['view_latest'] = [
-        '#title' => $this->t('View @state State', ['@state' => $state->label()]),
+        '#title' => $this->t('View draft'),
         '#type' => 'link',
-        '#url' => Url::fromRoute("entity.{$entity_type_id}.latest_version", $params),
+        '#url' => Url::fromRoute("entity.{$entity_type_id}.latest_version", [
+          $entity_type_id => $entity->id(),
+        ]),
         '#attributes' => [
           'class' => ['moderation-sidebar-link'],
         ],
@@ -117,11 +119,8 @@ class ModerationSidebarController extends ControllerBase {
     }
     // Provide a link to the default display of the entity.
     else {
-      $vid = $this->moderationInformation->getDefaultRevisionId($entity_type_id, $entity->id());
-      $default_revision = $this->entityTypeManager()->getStorage($entity_type_id)->loadRevision($vid);
-      $state = $this->getState($default_revision);
       $build['actions']['view_default'] = [
-        '#title' => $this->t('View @state State', ['@state' => $state->label()]),
+        '#title' => $this->t('View live content'),
         '#type' => 'link',
         '#url' => $entity->toLink()->getUrl(),
         '#attributes' => [
@@ -131,7 +130,7 @@ class ModerationSidebarController extends ControllerBase {
       // Show an edit link if this is the latest revision.
       if ($is_latest) {
         $build['actions']['edit_draft'] = [
-          '#title' => $this->t('Edit this revision'),
+          '#title' => $this->t('Edit this draft'),
           '#type' => 'link',
           '#url' => $entity->toLink(NULL, 'edit-form')->getUrl(),
           '#attributes' => [
@@ -145,7 +144,8 @@ class ModerationSidebarController extends ControllerBase {
     if ($is_latest && !$entity->isDefaultRevision()) {
       $build['form_wrapper'] = [
         '#type' => 'details',
-        '#title' => $this->t('Change State'),
+        '#title' => $this->t('Transition State'),
+        '#open' => TRUE,
         '#attributes' => [
           'class' => ['moderation-sidebar-form'],
         ],
