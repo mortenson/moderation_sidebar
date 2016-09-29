@@ -1,0 +1,34 @@
+.toolbar-bar .toolbar-icon-moderation-sidebar:before {
+  background-image: url(../images/icon.png);
+}
+
+/* Full width magic buttons. */
+.moderation-sidebar-actions {
+  margin-left: -20px;
+  width: calc(100% + 40px);
+}
+
+.ui-dialog-offcanvas .moderation-sidebar-link,
+.ui-dialog-offcanvas .moderation-sidebar-link:visited,
+.ui-dialog-offcanvas .moderation-sidebar-link.button {
+  display: block;
+  background: #7b7b7b;
+  width: 100%;
+  color: white;
+  margin: 0 0 2px 0;
+  padding: 10px;
+  border-radius: 0;
+  text-align: center;
+  transition: .2s;
+  border: 1px solid #989898;
+}
+
+.ui-dialog-offcanvas .moderation-sidebar-link:hover {
+  background: #888;
+  color: white;
+}
+
+.quick-moderation-form select {
+  width: 100%;
+  height: 30px;
+}

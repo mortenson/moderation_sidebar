@@ -1,0 +1,13 @@
+moderation_sidebar.sidebar:
+  path: '/moderation-sidebar/{entity_type}/revision/{entity}'
+  defaults:
+    _controller: '\Drupal\moderation_sidebar\Controller\ModerationSidebarController::sideBar'
+    _title_callback: '\Drupal\moderation_sidebar\Controller\ModerationSidebarController::title'
+  requirements:
+    _permission: 'use moderation sidebar'
+    _entity_access: 'entity.view'
+    _custom_access: '\Drupal\moderation_sidebar\Controller\ModerationSidebarController::access'
+  options:
+    parameters:
+      entity:
+        type: entity_revision:{entity_type}

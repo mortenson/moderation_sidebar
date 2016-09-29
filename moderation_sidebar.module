@@ -1,0 +1,62 @@
+<?php
+
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_toolbar_alter().
+ */
+function moderation_sidebar_toolbar_alter(&$items) {
+  /** @var \Drupal\Core\Routing\AdminContext $admin_context */
+  $admin_context = \Drupal::service('router.admin_context');
+  /** @var \Drupal\content_moderation\ModerationInformation $moderation_information */
+  $moderation_information = \Drupal::service('content_moderation.moderation_information');
+
+  // Get the current Entity.
+  // @todo Support other Content Entities.
+  /** @var \Drupal\Core\Entity\ContentEntityInterface $entity */
+  $entity = \Drupal::routeMatch()->getParameter('node');
+  if ($entity && !$admin_context->isAdminRoute() && $moderation_information->isModeratedEntity($entity)) {
+    $params = [
+      'entity' => $entity->getRevisionId(),
+      'entity_type' => $entity->getEntityTypeId(),
+    ];
+    $items['moderation_sidebar'] = [
+      '#type' => 'toolbar_item',
+      'tab' => [
+        '#type' => 'link',
+        '#title' => t('Moderate'),
+        '#url' => Url::fromRoute('moderation_sidebar.sidebar', $params),
+        '#attributes' => [
+          'class' => [
+            'use-ajax',
+            'toolbar-icon',
+            'toolbar-icon-moderation-sidebar'
+          ],
+          'data-dialog-type' => 'dialog',
+          'data-dialog-renderer' => 'offcanvas',
+        ],
+      ],
+      '#attached' => [
+        'library' => [
+          'moderation_sidebar/main',
+        ],
+      ],
+    ];
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function moderation_sidebar_theme() {
+  return [
+    'moderation_sidebar_info' => [
+      'variables' => [
+        'title' => '',
+        'state' => '',
+        'revision_time' => NULL,
+        'revision_author' => NULL,
+      ],
+    ],
+  ];
+}

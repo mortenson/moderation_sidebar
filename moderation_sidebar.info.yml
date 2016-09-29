@@ -1,0 +1,9 @@
+name: 'Moderation Sidebar'
+type: module
+description: 'Provides a frontend sidebar for Content Moderation'
+version: VERSION
+core: 8.x
+package: Other
+dependencies:
+  - content_moderation
+  - outside_in
