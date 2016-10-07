@@ -13,7 +13,6 @@
   margin: 0 0 8px 0;
   padding: 10px 0 10px 0;
   color: white;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
   border: 0;
   border-radius: 2px;
   text-align: center;
@@ -21,7 +20,6 @@
 
 .ui-dialog-offcanvas .moderation-sidebar-link:hover {
   color: white;
-  box-shadow: 0 1px 5px rgba(0,0,0,0.25), 0 1px 6px rgba(0,0,0,0.22);
 }
 
 .quick-moderation-form select {
