@@ -2,6 +2,7 @@
 
 namespace Drupal\moderation_sidebar\Form;
 
+use Drupal\content_moderation\ModerationStateInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
@@ -9,12 +10,13 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\content_moderation\Entity\ModerationStateTransition;
 use Drupal\content_moderation\ModerationInformationInterface;
 use Drupal\content_moderation\StateTransitionValidation;
+use Drupal\content_moderation\ModerationStateTransitionInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * The QuickDraftForm provides a quick button for creating a new Draft.
+ * The QuickTransitionForm provides quick buttons for changing transitions.
  */
-class QuickDraftForm extends FormBase {
+class QuickTransitionForm extends FormBase {
 
   /**
    * The moderation information service.
@@ -68,7 +70,7 @@ class QuickDraftForm extends FormBase {
    * {@inheritdoc}
    */
   public function getFormId() {
-    return 'moderation_sidebar_quick_draft_form';
+    return 'moderation_sidebar_quick_transition_form';
   }
 
   /**
@@ -78,13 +80,27 @@ class QuickDraftForm extends FormBase {
     // Persist the entity so we can access it in the submit handler.
     $form_state->set('entity', $entity);
 
-    $form['create_draft'] = [
-      '#type' => 'submit',
-      '#value' => $this->t('Create new draft'),
-      '#attributes' => [
-        'class' => ['moderation-sidebar-link'],
-      ],
-    ];
+    $transitions = $this->validation->getValidTransitions($entity, $this->currentUser());
+
+    // Exclude self-transitions.
+    /** @var \Drupal\content_moderation\Entity\ModerationState $current_state */
+    $current_state = $entity->moderation_state->entity;
+
+    /** @var ModerationStateTransitionInterface[] $transitions */
+    $transitions = array_filter($transitions, function(ModerationStateTransition $transition) use ($current_state) {
+      return $transition->getToState() != $current_state->id();
+    });
+
+    foreach ($transitions as $transition) {
+      $form[$transition->id()] = [
+        '#type' => 'submit',
+        '#id' => $transition->id(),
+        '#value' => $this->t($transition->label()),
+        '#attributes' => [
+          'class' => ['moderation-sidebar-link', 'button--primary'],
+        ],
+      ];
+    }
 
     return $form;
   }
@@ -96,31 +112,35 @@ class QuickDraftForm extends FormBase {
     /** @var ContentEntityInterface $entity */
     $entity = $form_state->get('entity');
 
-    /** @var \Drupal\content_moderation\Entity\ModerationState $current_state */
-    $current_state = $entity->moderation_state->entity;
-
+    /** @var ModerationStateTransitionInterface[] $transitions */
     $transitions = $this->validation->getValidTransitions($entity, $this->currentUser());
 
-    // Exclude self-transitions.
-    $transitions = array_filter($transitions, function(ModerationStateTransition $transition) use ($current_state) {
-      return $transition->getToState() != $current_state->id();
-    });
+    $element = $form_state->getTriggeringElement();
 
-    $new_transition = reset($transitions);
-    $new_state = $new_transition->getToState();
+    if (!isset($transitions[$element['#id']])) {
+      $form_state->setError($element, $this->t('Invalid transition selected.'));
+      return;
+    }
 
-    // @todo should we just just be updating the content moderation state
-    //   entity? That would prevent setting the revision log.
-    $entity->moderation_state->target_id = $new_state;
-    $entity->revision_log = '';
+    $state_id = $transitions[$element['#id']]->getToState();
+    /** @var ModerationStateInterface $state */
+    $state = $this->entityTypeManager->getStorage('moderation_state')->load($state_id);
+
+    $entity->moderation_state->target_id = $state_id;
+    $entity->revision_log = $this->t('Used the Moderation Sidebar to change the state to "@state".', ['@state' => $state->label()]);
 
     $entity->save();
 
     drupal_set_message($this->t('The moderation state has been updated.'));
 
-    $entity_type_id = $entity->getEntityTypeId();
-    $params = [$entity_type_id => $entity->id()];
-    $form_state->setRedirect("entity.{$entity_type_id}.latest_version", $params);
+    if ($state->isPublishedState()) {
+      $form_state->setRedirectUrl($entity->toLink()->getUrl());
+    }
+    else {
+      $entity_type_id = $entity->getEntityTypeId();
+      $params = [$entity_type_id => $entity->id()];
+      $form_state->setRedirect("entity.{$entity_type_id}.latest_version", $params);
+    }
   }
 
 }

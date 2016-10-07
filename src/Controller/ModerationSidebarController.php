@@ -9,8 +9,7 @@ use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\RevisionLogInterface;
 use Drupal\Core\Url;
-use Drupal\moderation_sidebar\Form\QuickDraftForm;
-use Drupal\moderation_sidebar\Form\QuickModerationForm;
+use Drupal\moderation_sidebar\Form\QuickTransitionForm;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -103,55 +102,43 @@ class ModerationSidebarController extends ControllerBase {
     // If this revision is not the latest, provide a link to the latest entity.
     if (!$is_latest) {
       $build['actions']['view_latest'] = [
-        '#title' => $this->t('View draft'),
+        '#title' => $this->t('View existing draft'),
         '#type' => 'link',
         '#url' => Url::fromRoute("entity.{$entity_type_id}.latest_version", [
           $entity_type_id => $entity->id(),
         ]),
         '#attributes' => [
-          'class' => ['moderation-sidebar-link'],
+          'class' => ['moderation-sidebar-link', 'button'],
         ],
       ];
     }
-    // Provide a quick "Create Draft" button if this is the default revision.
-    else if ($entity->isDefaultRevision()) {
-      $build['actions']['create_draft'] = $this->formBuilder()->getForm(QuickDraftForm::class, $entity);
-    }
+
     // Provide a link to the default display of the entity.
-    else {
+    if ($this->moderationInformation->getDefaultRevisionId($entity->getEntityTypeId(), $entity->id()) != $entity->getRevisionId()) {
       $build['actions']['view_default'] = [
         '#title' => $this->t('View live content'),
         '#type' => 'link',
         '#url' => $entity->toLink()->getUrl(),
         '#attributes' => [
-          'class' => ['moderation-sidebar-link'],
+          'class' => ['moderation-sidebar-link', 'button'],
         ],
       ];
-      // Show an edit link if this is the latest revision.
-      if ($is_latest) {
-        $build['actions']['edit_draft'] = [
-          '#title' => $this->t('Edit this draft'),
-          '#type' => 'link',
-          '#url' => $entity->toLink(NULL, 'edit-form')->getUrl(),
-          '#attributes' => [
-            'class' => ['moderation-sidebar-link'],
-          ],
-        ];
-      }
     }
 
-    // Show our simplified version of the Moderation Form.
-    if ($is_latest && !$entity->isDefaultRevision()) {
-      $build['form_wrapper'] = [
-        '#type' => 'details',
-        '#title' => $this->t('Transition State'),
-        '#open' => TRUE,
+    // Show an edit link if this is the latest revision.
+    if ($is_latest && !$this->moderationInformation->isLiveRevision($entity)) {
+      $build['actions']['edit_draft'] = [
+        '#title' => $this->t('Edit this draft'),
+        '#type' => 'link',
+        '#url' => $entity->toLink(NULL, 'edit-form')->getUrl(),
         '#attributes' => [
-          'class' => ['moderation-sidebar-form'],
+          'class' => ['moderation-sidebar-link', 'button'],
         ],
       ];
-      $build['form_wrapper']['form'] = $this->formBuilder()->getForm(QuickModerationForm::class, $entity);
     }
+
+    // Provide a list of actions representing transitions for this revision.
+    $build['actions']['quick_draft_form'] = $this->formBuilder()->getForm(QuickTransitionForm::class, $entity);
 
     return $build;
   }
@@ -166,6 +153,8 @@ class ModerationSidebarController extends ControllerBase {
    *   The title of the sidebar.
    */
   public function title(ContentEntityInterface $entity) {
+    // @todo Is there a way to generically get the Bundle Entity Type for a
+    // given Entity?
     if ($entity->getEntityTypeId() == 'node') {
       $type = $this->moderationInformation->loadBundleEntity('node_type', $entity->getType());
       $label = $type->label();
