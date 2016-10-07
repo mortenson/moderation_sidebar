@@ -23,7 +23,7 @@ class QuickTransitionForm extends FormBase {
    *
    * @var \Drupal\content_moderation\ModerationInformationInterface
    */
-  protected $moderationInfo;
+  protected $moderationInformation;
 
   /**
    * The moderation state transition validation service.
@@ -50,7 +50,7 @@ class QuickTransitionForm extends FormBase {
    *   The entity type manager.
    */
   public function __construct(ModerationInformationInterface $moderation_info, StateTransitionValidation $validation, EntityTypeManagerInterface $entity_type_manager) {
-    $this->moderationInfo = $moderation_info;
+    $this->moderationInformation = $moderation_info;
     $this->validation = $validation;
     $this->entityTypeManager = $entity_type_manager;
   }
@@ -77,6 +77,11 @@ class QuickTransitionForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, ContentEntityInterface $entity = NULL) {
+    // Return an empty form if the user does not have appropriate permissions.
+    if (!$entity->access('update')) {
+      return [];
+    }
+
     // Persist the entity so we can access it in the submit handler.
     $form_state->set('entity', $entity);
 
@@ -102,7 +107,44 @@ class QuickTransitionForm extends FormBase {
       ];
     }
 
+    // Allow users to delete Drafts.
+    if ($this->moderationInformation->isLatestRevision($entity)
+      && !$this->moderationInformation->isLiveRevision($entity)
+      && !$entity->isDefaultRevision()) {
+      $form['moderation-sidebar-delete-draft'] = [
+        '#type' => 'submit',
+        '#id' => 'moderation-sidebar-delete-draft',
+        '#value' => $this->t('Delete draft'),
+        '#attributes' => [
+          'class' => ['moderation-sidebar-link', 'button', 'button--danger'],
+        ],
+        '#submit' => ['::deleteDraft'],
+      ];
+    }
+
     return $form;
+  }
+
+  /**
+   * Form submission handler to delete the current draft.
+   *
+   * Technically, there is no way to delete Drafts, but as a Draft is really
+   * just a current, non-live revision, we can simply re-save the default
+   * revision to get the same end-result.
+   *
+   * @param array $form
+   *   An associative array containing the structure of the form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
+   */
+  public function deleteDraft(array &$form, FormStateInterface $form_state) {
+    /** @var ContentEntityInterface $entity */
+    $entity = $form_state->get('entity');
+    $default_revision_id = $this->moderationInformation->getDefaultRevisionId($entity->getEntityTypeId(), $entity->id());
+    $default_revision = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadRevision($default_revision_id);
+    $default_revision->save();
+    drupal_set_message($this->t('The current draft has been deleted.'));
+    $form_state->setRedirectUrl($entity->toLink()->getUrl());
   }
 
   /**

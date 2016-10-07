@@ -114,7 +114,7 @@ class ModerationSidebarController extends ControllerBase {
     }
 
     // Provide a link to the default display of the entity.
-    if ($this->moderationInformation->getDefaultRevisionId($entity->getEntityTypeId(), $entity->id()) != $entity->getRevisionId()) {
+    if (!$entity->isDefaultRevision()) {
       $build['actions']['view_default'] = [
         '#title' => $this->t('View live content'),
         '#type' => 'link',
@@ -128,7 +128,7 @@ class ModerationSidebarController extends ControllerBase {
     // Show an edit link if this is the latest revision.
     if ($is_latest && !$this->moderationInformation->isLiveRevision($entity)) {
       $build['actions']['edit_draft'] = [
-        '#title' => $this->t('Edit this draft'),
+        '#title' => $this->t('Edit draft'),
         '#type' => 'link',
         '#url' => $entity->toLink(NULL, 'edit-form')->getUrl(),
         '#attributes' => [
