@@ -11,6 +11,7 @@ use Drupal\content_moderation\Entity\ModerationStateTransition;
 use Drupal\content_moderation\ModerationInformationInterface;
 use Drupal\content_moderation\StateTransitionValidation;
 use Drupal\content_moderation\ModerationStateTransitionInterface;
+use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -107,18 +108,17 @@ class QuickTransitionForm extends FormBase {
       ];
     }
 
-    // Allow users to delete Drafts.
+    // Allow users to discard Drafts.
     if ($this->moderationInformation->isLatestRevision($entity)
       && !$this->moderationInformation->isLiveRevision($entity)
       && !$entity->isDefaultRevision()) {
-      $form['moderation-sidebar-delete-draft'] = [
+      $form['discard_draft'] = [
         '#type' => 'submit',
-        '#id' => 'moderation-sidebar-delete-draft',
-        '#value' => $this->t('Delete draft'),
+        '#value' => $this->t('Discard draft'),
         '#attributes' => [
           'class' => ['moderation-sidebar-link', 'button', 'button--danger'],
         ],
-        '#submit' => ['::deleteDraft'],
+        '#submit' => ['::discardDraft'],
       ];
     }
 
@@ -126,10 +126,10 @@ class QuickTransitionForm extends FormBase {
   }
 
   /**
-   * Form submission handler to delete the current draft.
+   * Form submission handler to discard the current draft.
    *
    * Technically, there is no way to delete Drafts, but as a Draft is really
-   * just a current, non-live revision, we can simply re-save the default
+   * just the current, non-live revision, we can simply re-save the default
    * revision to get the same end-result.
    *
    * @param array $form
@@ -137,13 +137,25 @@ class QuickTransitionForm extends FormBase {
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The current state of the form.
    */
-  public function deleteDraft(array &$form, FormStateInterface $form_state) {
+  public function discardDraft(array &$form, FormStateInterface $form_state) {
     /** @var ContentEntityInterface $entity */
     $entity = $form_state->get('entity');
     $default_revision_id = $this->moderationInformation->getDefaultRevisionId($entity->getEntityTypeId(), $entity->id());
     $default_revision = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadRevision($default_revision_id);
+    $default_revision->revision_log = $this->t('Used the Moderation Sidebar to delete the current draft.');
     $default_revision->save();
-    drupal_set_message($this->t('The current draft has been deleted.'));
+    drupal_set_message($this->t('The draft has been discarded successfully.'));
+
+    // There is no generic entity route to view a single revision, but we know
+    // that the node module support this.
+    if ($entity->getEntityTypeId() == 'node') {
+      $url = Url::fromRoute('entity.node.revision', [
+        'node' => $entity->id(),
+        'node_revision' => $entity->getRevisionId(),
+      ])->toString();
+      drupal_set_message($this->t('<a href="@url">You can view an archive of the draft by clicking here.</a>', ['@url' => $url]));
+    }
+
     $form_state->setRedirectUrl($entity->toLink()->getUrl());
   }
 
