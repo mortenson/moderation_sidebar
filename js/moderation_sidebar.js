@@ -16,7 +16,7 @@
             if (model.get('isCommitting') === true && $('.moderation-sidebar-container').length) {
               $('.toolbar-icon-moderation-sidebar').click();
             }
-          }, 'moderation_sidebar');
+          });
         });
       }
     }
