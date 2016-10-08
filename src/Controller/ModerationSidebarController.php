@@ -65,7 +65,12 @@ class ModerationSidebarController extends ControllerBase {
    *   The render array for the sidebar.
    */
   public function sideBar(ContentEntityInterface $entity) {
-    $build = [];
+    $build = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['moderation-sidebar-container'],
+      ],
+    ];
 
     // Add information about this Entity to the top of the bar.
     $state = $this->getState($entity);
@@ -153,6 +158,20 @@ class ModerationSidebarController extends ControllerBase {
     }
 
     return $build;
+  }
+
+  /**
+   * Displays the moderation sidebar for the latest revision of an entity.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   A moderated entity.
+   *
+   * @return array
+   *   The render array for the sidebar.
+   */
+  public function sideBarLatest(ContentEntityInterface $entity) {
+    $entity = $this->moderationInformation->getLatestRevision($entity->getEntityTypeId(), $entity->id());
+    return $this->sideBar($entity);
   }
 
   /**

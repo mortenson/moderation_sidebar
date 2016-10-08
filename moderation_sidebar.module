@@ -20,15 +20,25 @@ function moderation_sidebar_toolbar() {
   $entity = \Drupal::routeMatch()->getParameter('node');
   if ($entity instanceof EntityInterface && !$admin_context->isAdminRoute() && $moderation_information->isModeratedEntity($entity)) {
     $params = [
-      'entity' => $entity->getRevisionId(),
+      'entity' => $entity->id(),
       'entity_type' => $entity->getEntityTypeId(),
     ];
+
+    // We maintain two separate routes depending on what context we're viewing
+    // the entity in.
+    if ($moderation_information->isLatestRevision($entity)) {
+      $url = Url::fromRoute('moderation_sidebar.sidebar_latest', $params);
+    }
+    else {
+      $url = Url::fromRoute('moderation_sidebar.sidebar', $params);
+    }
+
     $items['moderation_sidebar'] = [
       '#type' => 'toolbar_item',
       'tab' => [
         '#type' => 'link',
         '#title' => t('Moderate'),
-        '#url' => Url::fromRoute('moderation_sidebar.sidebar', $params),
+        '#url' => $url,
         '#attributes' => [
           'class' => [
             'use-ajax',
@@ -44,8 +54,7 @@ function moderation_sidebar_toolbar() {
           'moderation_sidebar/main',
         ],
       ],
-      // There's not a great way to cache based on an entity revision, which
-      // is why the node module disables it completely when viewing revisions.
+      // @todo Can we set cache contexts based on the entity revision?
       '#cache' => [
         'max-age' => 0,
       ],

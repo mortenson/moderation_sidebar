@@ -1,5 +1,5 @@
 moderation_sidebar.sidebar:
-  path: '/moderation-sidebar/{entity_type}/revision/{entity}'
+  path: '/moderation-sidebar/{entity_type}/{entity}'
   defaults:
     _controller: '\Drupal\moderation_sidebar\Controller\ModerationSidebarController::sideBar'
     _title_callback: '\Drupal\moderation_sidebar\Controller\ModerationSidebarController::title'
@@ -10,13 +10,12 @@ moderation_sidebar.sidebar:
   options:
     parameters:
       entity:
-        type: entity_revision:{entity_type}
+        type: entity:{entity_type}
 
-# @todo Remove this when https://www.drupal.org/node/2808163 is closed.
-moderation_sidebar.sidebar_override:
-  path: '/moderation-sidebar/node/revision/{entity}'
+moderation_sidebar.sidebar_latest:
+  path: '/moderation-sidebar/{entity_type}/{entity}/latest'
   defaults:
-    _controller: '\Drupal\moderation_sidebar\Controller\ModerationSidebarController::sideBar'
+    _controller: '\Drupal\moderation_sidebar\Controller\ModerationSidebarController::sideBarLatest'
     _title_callback: '\Drupal\moderation_sidebar\Controller\ModerationSidebarController::title'
   requirements:
     _permission: 'use moderation sidebar'
@@ -25,4 +24,4 @@ moderation_sidebar.sidebar_override:
   options:
     parameters:
       entity:
-        type: entity_revision:node
+        type: entity:{entity_type}
