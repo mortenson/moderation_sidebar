@@ -114,6 +114,7 @@ class QuickTransitionForm extends FormBase {
       && !$entity->isDefaultRevision()) {
       $form['discard_draft'] = [
         '#type' => 'submit',
+        '#id' => 'moderation-sidebar-discard-draft',
         '#value' => $this->t('Discard draft'),
         '#attributes' => [
           'class' => ['moderation-sidebar-link', 'button', 'button--danger'],

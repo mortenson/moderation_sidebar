@@ -4,9 +4,11 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Url;
 
 /**
- * Implements hook_toolbar_alter().
+ * Implements hook_toolbar().
  */
-function moderation_sidebar_toolbar_alter(&$items) {
+function moderation_sidebar_toolbar() {
+  $items = [];
+
   /** @var \Drupal\Core\Routing\AdminContext $admin_context */
   $admin_context = \Drupal::service('router.admin_context');
   /** @var \Drupal\content_moderation\ModerationInformation $moderation_information */
@@ -31,7 +33,7 @@ function moderation_sidebar_toolbar_alter(&$items) {
           'class' => [
             'use-ajax',
             'toolbar-icon',
-            'toolbar-icon-moderation-sidebar'
+            'toolbar-icon-moderation-sidebar',
           ],
           'data-dialog-type' => 'dialog',
           'data-dialog-renderer' => 'offcanvas',
@@ -42,8 +44,15 @@ function moderation_sidebar_toolbar_alter(&$items) {
           'moderation_sidebar/main',
         ],
       ],
+      // There's not a great way to cache based on an entity revision, which
+      // is why the node module disables it completely when viewing revisions.
+      '#cache' => [
+        'max-age' => 0,
+      ],
     ];
   }
+
+  return $items;
 }
 
 /**
