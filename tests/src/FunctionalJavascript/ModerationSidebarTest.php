@@ -65,7 +65,7 @@ class ModerationSidebarTest extends JavascriptTestBase {
     $node = $this->createNode(['type' => 'article']);
     $this->drupalGet('node/' . $node->id());
 
-    // Open the oderation sidebar.
+    // Open the moderation sidebar.
     $this->clickLink('Moderate');
     $this->assertSession()->assertWaitOnAjaxRequest();
     // Archived transitions should not be visible based on our permissions.
