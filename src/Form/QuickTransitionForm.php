@@ -5,6 +5,7 @@ namespace Drupal\moderation_sidebar\Form;
 use Drupal\content_moderation\ModerationStateInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\RevisionLogInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\content_moderation\Entity\ModerationStateTransition;
@@ -182,7 +183,11 @@ class QuickTransitionForm extends FormBase {
     $state = $this->entityTypeManager->getStorage('moderation_state')->load($state_id);
 
     $entity->moderation_state->target_id = $state_id;
-    $entity->revision_log = $this->t('Used the Moderation Sidebar to change the state to "@state".', ['@state' => $state->label()]);
+
+    if ($entity instanceof RevisionLogInterface) {
+      $entity->setRevisionCreationTime(REQUEST_TIME);
+      $entity->setRevisionLogMessage($this->t('Used the Moderation Sidebar to change the state to "@state".', ['@state' => $state->label()]));
+    }
 
     $entity->save();
 
