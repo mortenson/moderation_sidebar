@@ -2,6 +2,6 @@
   <h2>{{ title }}</h2>
   <p>{{ 'Current state is' | t }} {{ state }}</p>
   {% if revision_author_link %}
-    <p>{{ 'Authored by' | t }} {{ revision_author_link }} {{ 'on ' | t }} <br />{{ revision_time | date('m/d/Y - h:i A') }}</p>
+    <p>{{ 'Authored by' | t }} {{ revision_author_link }} {{ revision_time_pretty }}</p>
   {% endif %}
 </div>

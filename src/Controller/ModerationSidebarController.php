@@ -5,6 +5,7 @@ namespace Drupal\moderation_sidebar\Controller;
 use Drupal\content_moderation\ModerationInformation;
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\RevisionLogInterface;
@@ -33,16 +34,26 @@ class ModerationSidebarController extends ControllerBase {
   protected $request;
 
   /**
+   * The date formatter service.
+   *
+   * @var \Drupal\Core\Datetime\DateFormatterInterface
+   */
+  protected $dateFormatter;
+
+  /**
    * Creates a ModerationSidebarController instance.
    *
    * @param \Drupal\content_moderation\ModerationInformation $moderation_information
    *   The moderation information service.
    * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
    *   The request stack service.
+   * @param \Drupal\Core\Datetime\DateFormatterInterface $date_formatter
+   *   The date formatter service.
    */
-  public function __construct(ModerationInformation $moderation_information, RequestStack $request_stack) {
+  public function __construct(ModerationInformation $moderation_information, RequestStack $request_stack, DateFormatterInterface $date_formatter) {
     $this->moderationInformation = $moderation_information;
     $this->request = $request_stack->getCurrentRequest();
+    $this->dateFormatter = $date_formatter;
   }
 
   /**
@@ -51,7 +62,8 @@ class ModerationSidebarController extends ControllerBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('content_moderation.moderation_information'),
-      $container->get('request_stack')
+      $container->get('request_stack'),
+      $container->get('date.formatter')
     );
   }
 
@@ -80,17 +92,25 @@ class ModerationSidebarController extends ControllerBase {
       '#state' => $state->label(),
     ];
 
-    if ($entity instanceof EntityChangedInterface) {
-      $build['info']['#updated_date'] = $entity->getChangedTime();
-    }
-
     if ($entity instanceof RevisionLogInterface) {
       $user = $entity->getRevisionUser();
+      $time = (int) $entity->getRevisionCreationTime();
+      $too_old = strtotime('-1 month');
+      // Show formatted time differences for edits younger than a month.
+      if ($time > $too_old) {
+        $diff = $this->dateFormatter->formatTimeDiffSince($time, ['granularity' => 1]);
+        $time_pretty = $this->t('@diff ago', ['@diff' => $diff]);
+      }
+      else {
+        $date = date('m/d/Y - h:i A', $time);
+        $time_pretty = $this->t('on @date', ['@date' => $date]);
+      }
       $user_link = $user->toLink()->toRenderable();
       $user_link['#attributes']['target'] = '_blank';
       $build['info']['#revision_author'] = $user->label();
       $build['info']['#revision_author_link'] = $user_link;
-      $build['info']['#revision_time'] = $entity->getRevisionCreationTime();
+      $build['info']['#revision_time'] = $time;
+      $build['info']['#revision_time_pretty'] = $time_pretty;
       $build['info']['#revision_id'] = $entity->getRevisionId();
     }
 
