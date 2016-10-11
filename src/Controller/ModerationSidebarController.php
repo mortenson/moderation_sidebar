@@ -7,8 +7,8 @@ use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
-use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\RevisionLogInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Url;
 use Drupal\moderation_sidebar\Form\QuickTransitionForm;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -41,6 +41,13 @@ class ModerationSidebarController extends ControllerBase {
   protected $dateFormatter;
 
   /**
+   * The module handler service.
+   *
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface
+   */
+  protected $moduleHandler;
+
+  /**
    * Creates a ModerationSidebarController instance.
    *
    * @param \Drupal\content_moderation\ModerationInformation $moderation_information
@@ -49,11 +56,14 @@ class ModerationSidebarController extends ControllerBase {
    *   The request stack service.
    * @param \Drupal\Core\Datetime\DateFormatterInterface $date_formatter
    *   The date formatter service.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler serivce.
    */
-  public function __construct(ModerationInformation $moderation_information, RequestStack $request_stack, DateFormatterInterface $date_formatter) {
+  public function __construct(ModerationInformation $moderation_information, RequestStack $request_stack, DateFormatterInterface $date_formatter, ModuleHandlerInterface $module_handler) {
     $this->moderationInformation = $moderation_information;
     $this->request = $request_stack->getCurrentRequest();
     $this->dateFormatter = $date_formatter;
+    $this->moduleHandler = $module_handler;
   }
 
   /**
@@ -63,7 +73,8 @@ class ModerationSidebarController extends ControllerBase {
     return new static(
       $container->get('content_moderation.moderation_information'),
       $container->get('request_stack'),
-      $container->get('date.formatter')
+      $container->get('date.formatter'),
+      $container->get('module_handler')
     );
   }
 
@@ -85,7 +96,7 @@ class ModerationSidebarController extends ControllerBase {
     ];
 
     // Add information about this Entity to the top of the bar.
-    $state = $this->getState($entity);
+    $state = $entity->moderation_state->entity;
     $build['info'] = [
       '#theme' => 'moderation_sidebar_info',
       '#title' => $entity->label(),
@@ -177,6 +188,9 @@ class ModerationSidebarController extends ControllerBase {
       ];
     }
 
+    // Allow other module to alter our build.
+    $this->moduleHandler->alter('moderation_sidebar', $build, $entity);
+
     return $build;
   }
 
@@ -228,19 +242,6 @@ class ModerationSidebarController extends ControllerBase {
   public function access(ContentEntityInterface $entity) {
     $is_moderated = $this->moderationInformation->isModeratedEntity($entity);
     return AccessResultAllowed::allowedIf($is_moderated);
-  }
-
-  /**
-   * Gets the moderation state for the given entity.
-   *
-   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
-   *   A moderated entity.
-   *
-   * @return \Drupal\workbench_moderation\Entity\ModerationState
-   *   The moderation state.
-   */
-  protected function getState(ContentEntityInterface $entity) {
-    return $entity->moderation_state->entity;
   }
 
 }
