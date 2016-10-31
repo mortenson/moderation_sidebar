@@ -218,15 +218,8 @@ class ModerationSidebarController extends ControllerBase {
    *   The title of the sidebar.
    */
   public function title(ContentEntityInterface $entity) {
-    // @todo Is there a way to generically get the Bundle Entity Type for a
-    // given Entity?
-    if ($entity->getEntityTypeId() == 'node') {
-      $type = $this->moderationInformation->loadBundleEntity('node_type', $entity->getType());
-      $label = $type->label();
-    }
-    else {
-      $label = $entity->getEntityType()->getLabel();
-    }
+    $type = $bundle_entity = $this->entityTypeManager()->getStorage($entity->getEntityType()->getBundleEntityType())->load($entity->bundle());
+    $label = $type->label();
     return $this->t('Moderate @label', ['@label' => $label]);
   }
 
