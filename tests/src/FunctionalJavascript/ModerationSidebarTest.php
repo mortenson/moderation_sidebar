@@ -15,9 +15,15 @@ class ModerationSidebarTest extends JavascriptTestBase {
    * {@inheritdoc}
    */
   public static $modules = [
-    'moderation_sidebar',
     'node',
   ];
+
+  /**
+   * Defines the moderation module used for this test.
+   *
+   * @var string
+   */
+  protected static $moderation_module = 'content_moderation';
 
   /**
    * {@inheritdoc}
@@ -25,15 +31,17 @@ class ModerationSidebarTest extends JavascriptTestBase {
   protected function setUp() {
     parent::setUp();
 
+    $this->container->get('module_installer')->install([self::$moderation_module, 'moderation_sidebar'], TRUE);
+
     // Create a Content Type with moderation enabled.
     $node_type = $this->drupalCreateContentType(['type' => 'article', 'name' => 'Article']);
-    $node_type->setThirdPartySetting('content_moderation', 'enabled', TRUE);
-    $node_type->setThirdPartySetting('content_moderation', 'allowed_moderation_states', [
+    $node_type->setThirdPartySetting(self::$moderation_module, 'enabled', TRUE);
+    $node_type->setThirdPartySetting(self::$moderation_module, 'allowed_moderation_states', [
       'published',
       'draft',
       'archived',
     ]);
-    $node_type->setThirdPartySetting('content_moderation', 'default_moderation_state', 'published');
+    $node_type->setThirdPartySetting(self::$moderation_module, 'default_moderation_state', 'published');
     $node_type->setNewRevision(TRUE);
     $node_type->save();
 

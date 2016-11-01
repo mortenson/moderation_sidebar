@@ -2,16 +2,11 @@
 
 namespace Drupal\moderation_sidebar\Form;
 
-use Drupal\content_moderation\ModerationStateInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\RevisionLogInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\content_moderation\Entity\ModerationStateTransition;
-use Drupal\content_moderation\ModerationInformationInterface;
-use Drupal\content_moderation\StateTransitionValidation;
-use Drupal\content_moderation\ModerationStateTransitionInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -51,7 +46,7 @@ class QuickTransitionForm extends FormBase {
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity type manager.
    */
-  public function __construct(ModerationInformationInterface $moderation_info, StateTransitionValidation $validation, EntityTypeManagerInterface $entity_type_manager) {
+  public function __construct($moderation_info, $validation, EntityTypeManagerInterface $entity_type_manager) {
     $this->moderationInformation = $moderation_info;
     $this->validation = $validation;
     $this->entityTypeManager = $entity_type_manager;
@@ -61,9 +56,11 @@ class QuickTransitionForm extends FormBase {
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
+    $moderation_info = $container->has('workbench_moderation.moderation_information') ? $container->get('workbench_moderation.moderation_information'): $container->get('content_moderation.moderation_information');
+    $validation = $container->has('workbench_moderation.state_transition_validation') ? $container->get('workbench_moderation.state_transition_validation'): $container->get('content_moderation.state_transition_validation');
     return new static(
-      $container->get('content_moderation.moderation_information'),
-      $container->get('content_moderation.state_transition_validation'),
+      $moderation_info,
+      $validation,
       $container->get('entity_type.manager')
     );
   }
@@ -93,8 +90,8 @@ class QuickTransitionForm extends FormBase {
     /** @var \Drupal\content_moderation\Entity\ModerationState $current_state */
     $current_state = $entity->moderation_state->entity;
 
-    /** @var ModerationStateTransitionInterface[] $transitions */
-    $transitions = array_filter($transitions, function(ModerationStateTransition $transition) use ($current_state) {
+    /** @var \Drupal\content_moderation\ModerationStateTransitionInterface[] $transitions */
+    $transitions = array_filter($transitions, function($transition) use ($current_state) {
       return $transition->getToState() != $current_state->id();
     });
 
@@ -168,7 +165,7 @@ class QuickTransitionForm extends FormBase {
     /** @var ContentEntityInterface $entity */
     $entity = $form_state->get('entity');
 
-    /** @var ModerationStateTransitionInterface[] $transitions */
+    /** @var \Drupal\content_moderation\ModerationStateTransitionInterface[] $transitions */
     $transitions = $this->validation->getValidTransitions($entity, $this->currentUser());
 
     $element = $form_state->getTriggeringElement();
@@ -179,7 +176,7 @@ class QuickTransitionForm extends FormBase {
     }
 
     $state_id = $transitions[$element['#id']]->getToState();
-    /** @var ModerationStateInterface $state */
+    /** @var \Drupal\content_moderation\ModerationStateInterface $state */
     $state = $this->entityTypeManager->getStorage('moderation_state')->load($state_id);
 
     $entity->moderation_state->target_id = $state_id;

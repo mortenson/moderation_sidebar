@@ -59,7 +59,7 @@ class ModerationSidebarController extends ControllerBase {
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler serivce.
    */
-  public function __construct(ModerationInformation $moderation_information, RequestStack $request_stack, DateFormatterInterface $date_formatter, ModuleHandlerInterface $module_handler) {
+  public function __construct($moderation_information, RequestStack $request_stack, DateFormatterInterface $date_formatter, ModuleHandlerInterface $module_handler) {
     $this->moderationInformation = $moderation_information;
     $this->request = $request_stack->getCurrentRequest();
     $this->dateFormatter = $date_formatter;
@@ -70,8 +70,9 @@ class ModerationSidebarController extends ControllerBase {
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
+    $moderation_info = $container->has('workbench_moderation.moderation_information') ? $container->get('workbench_moderation.moderation_information') : $container->get('content_moderation.moderation_information');
     return new static(
-      $container->get('content_moderation.moderation_information'),
+      $moderation_info,
       $container->get('request_stack'),
       $container->get('date.formatter'),
       $container->get('module_handler')

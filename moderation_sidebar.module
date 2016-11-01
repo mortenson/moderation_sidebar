@@ -12,7 +12,7 @@ function moderation_sidebar_toolbar() {
   /** @var \Drupal\Core\Routing\AdminContext $admin_context */
   $admin_context = \Drupal::service('router.admin_context');
   /** @var \Drupal\content_moderation\ModerationInformation $moderation_information */
-  $moderation_information = \Drupal::service('content_moderation.moderation_information');
+  $moderation_information = \Drupal::hasService('workbench_moderation.moderation_information') ? \Drupal::service('workbench_moderation.moderation_information') : \Drupal::service('content_moderation.moderation_information');
 
   // Get the current Entity.
   // @todo Support other entities. What's the generic way of doing this?
